@@ -47,6 +47,7 @@
 1. [Adding Cover](#addingCover)
 1. [Player Spectrum](#playerSpectrum)
 1. [Adding the gooey effect](#gooey)
+1. [Build](#build)
 
 
 ## Introduction<a name="intro"></a>
@@ -3438,6 +3439,7 @@ import { DRAGGING_FILES, NOT_DRAGGING_FILES, OPEN_LIST, CLOSE_LIST } from '../ev
   }
 ```
 
+## Build<a name="build"></a>
 
 We are done with this one now.
 
