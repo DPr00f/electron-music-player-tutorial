@@ -1,0 +1,84 @@
+.item {
+  counter-increment: item-counter;
+  position: relative;
+  height: 60px;
+  -webkit-user-select: none;
+}
+
+.item:hover .itemNumber {
+  opacity: 0;
+}
+
+.item:hover .playButton {
+  opacity: 1;
+}
+
+.item.is-playing .itemNumber{
+  opacity: 0;
+}
+
+.item.is-playing .playButton{
+  opacity: 1;
+}
+
+.playButton {
+  opacity: 0;
+  position: absolute;
+  left: 10px;
+  top: 15px;
+  background: url("../assets/img/play.svg");
+  background-size: 100%;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  -webkit-app-region: no-drag;
+  -webkit-transition: all 0.3s;
+  -moz-transition: all 0.3s;
+  transition: all 0.3s;
+}
+
+.pauseButton {
+  position: absolute;
+  left: 10px;
+  top: 15px;
+  background: url("../assets/img/pause.svg");
+  background-size: 100%;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  -webkit-app-region: no-drag;
+}
+
+.itemNumber {
+  opacity: 1;
+  font-size: 18px;
+  position: absolute;
+  display: block;
+  left: 18px;
+  top: 0;
+  line-height: 60px;
+  color: #9d9d9d;
+  -webkit-transition: all 0.3s;
+  -moz-transition: all 0.3s;
+  transition: all 0.3s;
+}
+
+.itemNumber::before {
+  content: counter(item-counter) ".";
+}
+
+.itemName {
+  display: block;
+  width: 80%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 60px;
+  text-indent: 50px;
+  font-size: 16px;
+  font-weight: normal;
+  overflow: hidden;
+}
+
+.is-selected {
+  background: rgba(255, 255, 255, 0.3) !important;
+}

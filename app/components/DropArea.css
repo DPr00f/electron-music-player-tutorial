@@ -1,0 +1,11 @@
+.dashedContainer {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  padding: 20px;
+  top: 50%;
+  transform: translate3d(0, -50%, 0);
+  text-align: center;
+  margin: auto;
+  border: 5px dashed #efefef;
+}

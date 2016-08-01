@@ -1,0 +1,31 @@
+.backButton {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  background: url("../assets/img/back.svg");
+  background-size: 100%;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  -webkit-app-region: no-drag;
+}
+
+.rubbishButton {
+  position: absolute;
+  left: 52px;
+  top: 10px;
+  background: url("../assets/img/rubbish.svg");
+  background-size: 100%;
+  width: 32px;
+  height: 32px;
+  -webkit-app-region: no-drag;
+  opacity: 0.2;
+  -webkit-transition: all 0.3s;
+  -moz-transition: all 0.3s;
+  transition: all 0.3s;
+}
+
+.rubbishButton.is-active {
+  opacity: 1;
+  cursor: pointer;
+}
