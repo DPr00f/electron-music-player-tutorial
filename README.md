@@ -30,3 +30,21 @@ Check his work on [Spotify](https://open.spotify.com/user/dawnclover) and here's
 Go ahead and download or clone [Electron React Boilerplate](https://github.com/chentsulin/electron-react-boilerplate)
 
 ### Cleanup package.json<a name="appSetupCleanPackage"></a>
+
+Change the package name and all the related information to the product.
+
+Now we'll remove unnecessary dependencies
+```
+// Found in devDependencies
+"extract-text-webpack-plugin": "^1.0.1",
+"redux-logger": "^2.6.1",
+
+// Found in dependencies
+"react-redux": "^4.4.5",
+"react-router": "^2.6.0",
+"react-router-redux": "^4.0.5",
+"redux": "^3.5.2",
+"redux-thunk": "^2.1.0",
+```
+
+Here's how the [package.json should look](package.json)

@@ -1,8 +1,8 @@
 {
-  "name": "electron-react-boilerplate",
-  "productName": "ElectronReact",
-  "version": "0.10.0",
-  "description": "Electron application boilerplate based on React, React Router, Webpack, React Hot Loader for rapid application development",
+  "name": "electron-music-player-tutorial",
+  "productName": "ElectronMusicPlayerTutorial",
+  "version": "0.1.0",
+  "description": "Electron Music Player Tutorial",
   "main": "main.js",
   "scripts": {
     "test": "cross-env NODE_ENV=test mocha --compilers js:babel-register --recursive --require ./test/setup.js test/**/*.spec.js",
@@ -25,27 +25,26 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chentsulin/electron-react-boilerplate.git"
+    "url": "git+https://github.com/DPr00f/electron-music-player-tutorial.git"
   },
   "author": {
-    "name": "C. T. Lin",
-    "email": "chentsulin@gmail.com",
-    "url": "https://github.com/chentsulin"
+    "name": "Joao Lopes",
+    "email": "jocolopes@gmail.com",
+    "url": "https://github.com/DPr00f"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/chentsulin/electron-react-boilerplate/issues"
+    "url": "https://github.com/DPr00f/electron-music-player-tutorial/issues"
   },
   "keywords": [
     "electron",
     "boilerplate",
     "react",
-    "react-router",
     "flux",
     "webpack",
     "react-hot"
   ],
-  "homepage": "https://github.com/chentsulin/electron-react-boilerplate#readme",
+  "homepage": "https://github.com/DPr00f/electron-music-player-tutorial#readme",
   "devDependencies": {
     "asar": "^0.12.1",
     "babel-core": "^6.11.4",
@@ -81,7 +80,6 @@
     "eslint-plugin-jsx-a11y": "^1.5.5",
     "eslint-plugin-react": "^5.2.2",
     "express": "^4.14.0",
-    "extract-text-webpack-plugin": "^1.0.1",
     "fbjs-scripts": "^0.7.1",
     "jsdom": "^9.4.1",
     "json-loader": "^0.5.4",
@@ -89,7 +87,6 @@
     "mocha": "^2.5.3",
     "node-libs-browser": "^1.0.0",
     "react-addons-test-utils": "^15.3.0",
-    "redux-logger": "^2.6.1",
     "sinon": "^1.17.4",
     "spectron": "^3.2.6",
     "style-loader": "^0.13.1",
@@ -105,11 +102,6 @@
     "postcss": "^5.1.0",
     "react": "^15.3.0",
     "react-dom": "^15.3.0",
-    "react-redux": "^4.4.5",
-    "react-router": "^2.6.0",
-    "react-router-redux": "^4.0.5",
-    "redux": "^3.5.2",
-    "redux-thunk": "^2.1.0",
     "source-map-support": "^0.4.2"
   },
   "devEngines": {
