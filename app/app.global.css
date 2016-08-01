@@ -53,3 +53,50 @@ body {
 .ListItem__is-odd {
   background: rgba(255, 255, 255, 0.15);
 }
+
+
+.volumeRange {
+  position: absolute;
+  left: 40px;
+  width: 30px;
+  height: 30px;
+  top: 7px;
+}
+
+.timeRange {
+  position: absolute;
+  left: 35px;
+  right: 35px;
+  height: 30px;
+  top: 7px;
+}
+
+.volumeRange .InputRange,
+.timeRange .InputRange {
+  cursor: default;
+}
+
+.timeRange .InputRange-label--min,
+.timeRange .InputRange-label--max,
+.timeRange .InputRange-label--value,
+.volumeRange .InputRange-label--min,
+.volumeRange .InputRange-label--max,
+.volumeRange .InputRange-label--value {
+  display: none;
+}
+
+.timeRange .InputRange-slider,
+.volumeRange .InputRange-slider {
+  top: 2px;
+  width: 10px;
+  height: 10px;
+}
+
+.timeRange .InputRange-sliderContainer,
+.timeRange .InputRange-track,
+.volumeRange .InputRange-sliderContainer,
+.volumeRange .InputRange-track {
+  -webkit-transition: none;
+  -moz-transition: none;
+  transition: none;
+}

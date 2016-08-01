@@ -37,10 +37,10 @@ class ListItem extends Component {
 
   render() {
     let className = `${styles.item} ListItem__${this.props.children.className}`;
-    if (this.props.selected) {
+    if (this.props.children.selected) {
       className += ` ${styles['is-selected']}`;
     }
-    if (this.props.isPlaying) {
+    if (this.props.children.isPlaying) {
       className += ` ${styles['is-playing']}`;
     }
     return <div
@@ -57,7 +57,7 @@ class ListItem extends Component {
           >
             <span className={ styles.itemNumber }></span>
             <span className={ styles.itemName }>{ this.props.children.item.displayName }</span>
-            { !this.props.isPlaying || this.props.isPaused ?
+            { !this.props.children.isPlaying || this.props.children.isPaused ?
                       <i className={ styles.playButton } onClick={ this.onPlayButtonClickProxy }></i> :
                       <i className={ styles.pauseButton } onClick={ this.onPauseButtonClickProxy }></i>
             }

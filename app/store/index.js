@@ -2,6 +2,7 @@ import Dispatcher from '../dispatcher';
 import { remote } from 'electron';
 import EventEmitter from 'events';
 import WaterFallOver from '../utils/WaterFallOver';
+import AudioController from '../utils/AudioController';
 import {
   CLOSE_WINDOW,
   REORDER_LIST,
@@ -26,6 +27,8 @@ import {
   ANIMATION_FRAME
 } from '../events';
 
+const NUMBER_OF_SPECTRUM_BARS = 16;
+
 class Store extends EventEmitter {
   constructor() {
     super();
@@ -34,6 +37,15 @@ class Store extends EventEmitter {
     this.volume = 100;
     this.isMute = false;
     this.onSongFinished = this.onSongFinished.bind(this);
+    this.reportAnimation = this.reportAnimation.bind(this);
+    this.audioController = new AudioController(this.volume);
+    this.audioController.on('songFinished', this.onSongFinished);
+    this.reportAnimation();
+  }
+
+  reportAnimation() {
+    this.emit(ANIMATION_FRAME);
+    global.requestAnimationFrame(this.reportAnimation);
   }
 
   closeCurrentWindow() {
@@ -87,10 +99,6 @@ class Store extends EventEmitter {
     return this.volume;
   }
 
-  readMetaData(files) {
-    console.log('readMetaData TODO');
-  }
-
   playSong(file) {
     if (this.playingSong && this.playingSong.paused && (!file || this.playingSong.id === file.id)) {
       this.resumeSong();
@@ -98,7 +106,7 @@ class Store extends EventEmitter {
       this.playNextOnTheList();
     } else {
       this.playingSong = file;
-      console.log('playSong TODO');
+      this.audioController.play(file);
       this.emit(STARTED_PLAYING, file);
     }
   }
@@ -151,13 +159,13 @@ class Store extends EventEmitter {
 
   resumeSong() {
     this.playingSong.paused = false;
-    console.log('resumeSong TODO');
+    this.audioController.resume();
     this.emit(STARTED_PLAYING, this.playingSong);
   }
 
   pauseSong() {
     this.playingSong.paused = true;
-    console.log('pauseSong TODO');
+    this.audioController.pause();
     this.emit(STARTED_PLAYING, this.playingSong);
   }
 
@@ -167,11 +175,11 @@ class Store extends EventEmitter {
     }
     this.emit(STOPPED_PLAYING, this.playingSong);
     this.playingSong = null;
-    console.log('stopSong TODO');
+    this.audioController.stop(false);
   }
 
   restartSong() {
-    console.log('restartSong TODO');
+    this.audioController.restart();
   }
 
   isMuted() {
@@ -180,36 +188,48 @@ class Store extends EventEmitter {
 
   mute() {
     this.isMute = true;
-    console.log('mute TODO');
+    this.audioController.mute();
     this.emit(MUTE_SOUND);
   }
 
   unmute(volume) {
     this.isMute = false;
-    console.log('unmute TODO');
+    this.audioController.unmute(volume);
     this.emit(UNMUTE_SOUND);
   }
 
   setVolume(volume) {
-    console.log('setVolume TODO');
+    this.audioController.setVolume(volume);
     this.volume = volume;
     this.emit(SET_VOLUME, volume);
   }
 
   getPlaytime() {
-    console.log('getPlaytime TODO');
+    return this.audioController.getCurrentPlayingTime();
   }
 
   getSongDuration() {
-    console.log('getSongDuration TODO');
+    return this.audioController.getSongDuration();
   }
 
   seek(value) {
-    console.log('seek TODO');
+    this.audioController.seek(value);
   }
 
   getFrequency() {
-    console.log('getFrequency TODO');
+    // we want to reuse the array to avoid creating multiple ones
+    const average = new Array(NUMBER_OF_SPECTRUM_BARS).fill(0);
+    let i = 0;
+    this.frequencies = this.frequencies || null;
+    this.frequencies = this.audioController.getFrequency(this.frequencies);
+    if (!this.frequencies) {
+      return average;
+    }
+    const averageStep = this.frequencies.length / NUMBER_OF_SPECTRUM_BARS;
+    for (i = 0; i < NUMBER_OF_SPECTRUM_BARS; i++) {
+      average[i] = this.audioController.analyserAverage(this.frequencies, i * averageStep, (i + 1) * averageStep);
+    }
+    return average;
   }
 }
 

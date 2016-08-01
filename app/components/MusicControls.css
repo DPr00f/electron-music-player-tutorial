@@ -1,0 +1,64 @@
+.container {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  height: 30px;
+}
+
+.volumeControl {
+  position: absolute;
+  right: 54px;
+  top: 0;
+}
+
+.basicControls {
+  position: relative;
+  float: left;
+  left: 10px;
+}
+
+.previousButton,
+.pauseButton,
+.playButton,
+.nextButton {
+  position: relative;
+  float: left;
+  margin: 0 4px;
+  background-size: 100%;
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  top: 6px;
+}
+
+.playButton,
+.pauseButton {
+  width: 30px;
+  height: 30px;
+  top: 0;
+}
+
+.previousButton {
+  background-image: url("../assets/img/previous.svg");
+}
+
+.nextButton {
+  background-image: url("../assets/img/next.svg");
+}
+
+.playButton {
+  background-image: url("../assets/img/play.svg");
+}
+
+.pauseButton {
+  background-image: url("../assets/img/pause.svg");
+}
+
+.basicControls div:first-child {
+  margin-left: 0;
+}
+
+.basicControls div:last-child {
+  margin-right: 0;
+}

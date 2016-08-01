@@ -34,6 +34,20 @@
     1. [Drop Area Component](#dropAreaComponent)
     1. [Fixing Current Styles](#fixingCurrentStyles)
 1. [Adding files to the list](#addingFilesToTheList)
+1. [Playing a song](#playingASong)
+1. [Adding more controls](#moreControls)
+    1. [Music Controls](#musicControls)
+    1. [Seeker Control](#seekerControl)
+    1. [Volume Control](#volumeControl)
+    1. [Volume Icon](#volumeIcon)
+    1. [Animation frame on the store](#animationFrame)
+    1. [Adding the Music Controls to the Home Component](#musicControlsHome)
+1. [Finishing the store](#finishingStore)
+1. [Fixing the styles for the seeker](#fixingSeeker)
+1. [Adding Cover](#addingCover)
+1. [Player Spectrum](#playerSpectrum)
+1. [Adding the gooey effect](#gooey)
+
 
 ## Introduction<a name="intro"></a>
 
@@ -788,10 +802,10 @@ class ListItem extends Component {
 
   render() {
     let className = `${styles.item} ListItem__${this.props.children.className}`;
-    if (this.props.selected) {
+    if (this.props.children.selected) {
       className += ` ${styles['is-selected']}`;
     }
-    if (this.props.isPlaying) {
+    if (this.props.children.isPlaying) {
       className += ` ${styles['is-playing']}`;
     }
     return <div
@@ -808,7 +822,7 @@ class ListItem extends Component {
           >
             <span className={ styles.itemNumber }></span>
             <span className={ styles.itemName }>{ this.props.children.item.displayName }</span>
-            { !this.props.isPlaying || this.props.isPaused ?
+            { !this.props.children.isPlaying || this.props.children.isPaused ?
                       <i className={ styles.playButton } onClick={ this.onPlayButtonClickProxy }></i> :
                       <i className={ styles.pauseButton } onClick={ this.onPauseButtonClickProxy }></i>
             }
@@ -1317,20 +1331,8 @@ class Store extends EventEmitter {
     return this.volume;
   }
 
-  readMetaData(files) {
-    console.log('readMetaData TODO');
-  }
-
   playSong(file) {
-    if (this.playingSong && this.playingSong.paused && (!file || this.playingSong.id === file.id)) {
-      this.resumeSong();
-    } else if (!file) {
-      this.playNextOnTheList();
-    } else {
-      this.playingSong = file;
-      console.log('playSong TODO');
-      this.emit(STARTED_PLAYING, file);
-    }
+    console.log('playSong TODO');
   }
 
   onSongFinished() {
@@ -2078,4 +2080,1373 @@ Let's open the store
 `app/store/index.js`
 
 ```
+...
+// Import the WaterFallOver as we'll need it
+import WaterFallOver from '../utils/WaterFallOver';
+
+...
+  addToList(files) {
+    let nextId = this.songsList.length;
+    const waterFall = new WaterFallOver(files);
+    const onProcessFile = (obj) => {
+      obj.item.id = nextId++;
+      obj.item.readTags().then(() => {
+        this.songsList.push(obj.item);
+        this.emit(LIST_UPDATE);
+        obj.next();
+      });
+    };
+    const onFinish = () => {
+      waterFall.removeListener('process', onProcessFile);
+    };
+    waterFall.on('process', onProcessFile);
+    waterFall.once('finish', onFinish);
+    waterFall.execute();
+  }
 ```
+
+And there we go, now dropping the files on the player will populate the play list
+
+Clicking on the play button doesn't actually do much. Let's change that.
+
+## Playing a song<a name="playingASong"></a>
+
+Let's create another utility that controls our mp3 file playback.
+
+We won't use any library for this one, we'll trust the web audio api.
+
+Let's create `app/utils/AudioController.js`
+
+```
+import EventEmitter from 'events';
+import fs from 'fs';
+
+const MAX_VOLUME = 100;
+
+class AudioController extends EventEmitter {
+  constructor(volume) {
+    super();
+    const fraction = parseInt(volume, 10) / MAX_VOLUME;
+    const AudioContext = global.AudioContext || global.webkitAudioContext;
+    this.context = new AudioContext();
+    this.volume = fraction * fraction;
+    this.onSongFinished = this.onSongFinished.bind(this);
+    this.offsetTime = 0;
+    this.isPlaying = false;
+    this.songStartingTime = undefined;
+  }
+
+  play(file) {
+    return new Promise((resolve, reject) => {
+      fs.readFile(file.path, (err, data) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        this.context.decodeAudioData(this.toArrayBuffer(data), (buffer) => {
+          this.playFromBuffer(buffer);
+          resolve();
+        });
+      });
+    });
+  }
+
+  playFromBuffer(buffer) {
+    this.stop(false);
+    this.buffer = buffer;
+    this.initSource();
+    this.offsetTime = 0;
+    this.songDuration = this.buffer.duration;
+    this.songStartingTime = this.context.currentTime;
+    this.playbackTime = 0;
+    this.startPlaying();
+  }
+
+  startPlaying() {
+    this.isPlaying = true;
+    this.source.start(0, this.playbackTime);
+  }
+
+  initSource() {
+    this.source = this.context.createBufferSource();
+    this.gainNode = this.context.createGain();
+    this.analyser = this.context.createAnalyser();
+    this.source.buffer = this.buffer;
+    this.source.connect(this.gainNode);
+    this.source.connect(this.analyser);
+    this.gainNode.connect(this.context.destination);
+    this.gainNode.gain.value = this.volume;
+    this.source.onended = this.onSongFinished;
+  }
+
+  seek(playbackTime) {
+    if (this.isPlaying) {
+      this.stop(false);
+      this.initSource();
+      this.songStartingTime = this.context.currentTime - playbackTime;
+      this.playbackTime = playbackTime;
+      this.startPlaying();
+    } else {
+      this.songStartingTime = this.context.currentTime - playbackTime;
+      this.playbackTime = playbackTime;
+    }
+  }
+
+  restart() {
+    this.seek(0);
+  }
+
+  getCurrentPlayingTime() {
+    if (typeof this.songStartingTime !== 'undefined') {
+      return this.context.currentTime - this.songStartingTime;
+    }
+  }
+
+  getSongDuration() {
+    return this.songDuration;
+  }
+
+  onSongFinished() {
+    this.isPlaying = false;
+    this.songDuration = undefined;
+    this.songStartingTime = undefined;
+    this.emit('songFinished');
+  }
+
+  stop(report = true) {
+    if (this.source) {
+      if (!report) {
+        this.source.onended = undefined;
+      }
+      this.source.stop(0);
+      this.gainNode = null;
+    }
+  }
+
+  pause() {
+    this.isPlaying = false;
+    this.pausePlaybackTime = this.playbackTime;
+    this.context.suspend();
+  }
+
+  resume() {
+    this.isPlaying = true;
+    this.context.resume();
+    if (this.pausePlaybackTime !== this.playbackTime) {
+      this.seek(this.playbackTime);
+    }
+  }
+
+  mute() {
+    if (this.gainNode) {
+      this.savedGainValue = this.gainNode.gain.value;
+      this.gainNode.gain.value = 0;
+    }
+  }
+
+  unmute(volume) {
+    if (this.gainNode) {
+      this.gainNode.gain.value = volume || this.savedGainValue;
+    }
+  }
+
+  setVolume(volume) {
+    const fraction = parseInt(volume, 10) / MAX_VOLUME;
+    this.volume = fraction * fraction; // Linear (x) doesn't sound as good
+    if (this.gainNode) {
+      this.gainNode.gain.value = this.volume;
+    }
+  }
+
+  toArrayBuffer(buffer) {
+    const ab = new ArrayBuffer(buffer.length);
+    const view = new Uint8Array(ab);
+    for (let i = 0; i < buffer.length; ++i) {
+      view[i] = buffer[i];
+    }
+    return ab;
+  }
+
+  getFrequency(frequencyData) {
+    if (!this.analyser) {
+      return;
+    }
+    if (!frequencyData) {
+      frequencyData = new Uint8Array(this.analyser.frequencyBinCount);
+    }
+    this.analyser.getByteFrequencyData(frequencyData);
+    return frequencyData;
+  }
+
+  frequencyToIndex(frequency, sampleRate, frequencyBinCount) {
+    const nyquist = sampleRate / 2;
+    const index = Math.round(frequency / nyquist * frequencyBinCount);
+    return this.clamp(index, 0, frequencyBinCount);
+  }
+
+  analyserAverage(frequencies, minHz, maxHz) {
+    const div = 255;
+    const sampleRate = this.analyser.context.sampleRate;
+    const binCount = this.analyser.frequencyBinCount;
+    let start = this.frequencyToIndex(minHz, sampleRate, binCount);
+    const end = this.frequencyToIndex(maxHz, sampleRate, binCount);
+    const count = end - start;
+    let sum = 0;
+    for (; start < end; start++) {
+      sum += frequencies[start] / div;
+    }
+    return count === 0 ? 0 : (sum / count);
+  }
+
+  clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+}
+
+export default AudioController;
+```
+
+That's all we need to grab all the information we'll need for this player.
+
+Let's open the store file and play that clicked song
+
+`app/store/index.js`
+
+```
+import AudioController from '../utils/AudioController';
+...
+
+  constructor() {
+    super();
+    this.songsList = [];
+    this.playingSong = null;
+    this.volume = 100;
+    this.isMute = false;
+    this.onSongFinished = this.onSongFinished.bind(this);
+    this.audioController = new AudioController(this.volume);
+    this.audioController.on('songFinished', this.onSongFinished);
+  }
+
+...
+
+  playSong(file) {
+    if (this.playingSong && this.playingSong.paused && (!file || this.playingSong.id === file.id)) {
+      this.resumeSong();
+    } else if (!file) {
+      this.playNextOnTheList();
+    } else {
+      this.playingSong = file;
+      this.audioController.play(file);
+      this.emit(STARTED_PLAYING, file);
+    }
+  }
+
+  resumeSong() {
+    this.playingSong.paused = false;
+    this.audioController.resume();
+    this.emit(STARTED_PLAYING, this.playingSong);
+  }
+
+  pauseSong() {
+    this.playingSong.paused = true;
+    this.audioController.pause();
+    this.emit(STARTED_PLAYING, this.playingSong);
+  }
+```
+
+There we go, now our app plays the song when we press play on the play list
+
+![Playing a song](tutorial/images/playingASong.png)
+
+## Adding more controls<a name="moreControls"></a>
+
+We'll need an extra npm module called [react-input-range](https://www.npmjs.com/package/react-input-range)
+
+`npm i react-input-range -S` from the command line to install it
+
+### Music Controls<a name="musicControls></a>
+
+`app/components/MusicControls.js`
+
+```
+import React, { Component } from 'react';
+import store from '../store';
+import VolumeControl from './VolumeControl';
+import Seeker from './Seeker';
+import styles from './MusicControls.css';
+import MusicActions from '../actions/music';
+import { STARTED_PLAYING, STOPPED_PLAYING } from '../events';
+
+// Decide whether to change track or restart the current one
+const TIME_BEFORE_CHANGING_TRACK = 1000;
+
+class MusicControls extends Component {
+  constructor() {
+    super();
+    this.state = {
+      songPlaying: false
+    };
+    this.onSongPlaying = this.onSongPlaying.bind(this);
+    this.onSongStopped = this.onSongStopped.bind(this);
+    this.onPauseClicked = this.onPauseClicked.bind(this);
+    this.onPlayClicked = this.onPlayClicked.bind(this);
+    this.onPreviousClicked = this.onPreviousClicked.bind(this);
+    this.onNextClicked = this.onNextClicked.bind(this);
+    this.lastTimeClicked = 0;
+  }
+
+  componentDidMount() {
+    store.on(STARTED_PLAYING, this.onSongPlaying);
+    store.on(STOPPED_PLAYING, this.onSongStopped);
+  }
+
+  componentWillUnmount() {
+    store.removeListener(STARTED_PLAYING, this.onSongPlaying);
+    store.removeListener(STOPPED_PLAYING, this.onSongStopped);
+  }
+
+  onSongPlaying(song) {
+    this.setState({
+      songPlaying: !song.paused
+    });
+  }
+
+  onSongStopped() {
+    this.setState({
+      songPlaying: false
+    });
+  }
+
+  onPlayClicked() {
+    MusicActions.playSong();
+  }
+
+  onPauseClicked() {
+    MusicActions.pauseSong();
+  }
+
+  onPreviousClicked() {
+    if (Date.now() - this.lastTimeClicked < TIME_BEFORE_CHANGING_TRACK) {
+      MusicActions.playPreviousSong();
+    } else {
+      MusicActions.restartSong();
+    }
+    this.lastTimeClicked = Date.now();
+  }
+
+  onNextClicked() {
+    MusicActions.playNextSong();
+  }
+
+  render() {
+    return (
+      <div className={ styles.container }>
+        <div className={ styles.basicControls }>
+          <div onClick={ this.onPreviousClicked } className={ styles.previousButton }></div>
+          { this.state.songPlaying ?
+              <div onClick={ this.onPauseClicked } className={ styles.pauseButton }></div> :
+              <div onClick={ this.onPlayClicked } className={ styles.playButton }></div>
+          }
+          <div onClick={ this.onNextClicked } className={ styles.nextButton }></div>
+        </div>
+        <Seeker />
+        <VolumeControl className={ styles.volumeControl } />
+      </div>
+    );
+  }
+}
+
+export default MusicControls;
+```
+
+And the styles `app/components/MusicControls.css`
+
+```
+.container {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  height: 30px;
+}
+
+.volumeControl {
+  position: absolute;
+  right: 54px;
+  top: 0;
+}
+
+.basicControls {
+  position: relative;
+  float: left;
+  left: 10px;
+}
+
+.previousButton,
+.pauseButton,
+.playButton,
+.nextButton {
+  position: relative;
+  float: left;
+  margin: 0 4px;
+  background-size: 100%;
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  top: 6px;
+}
+
+.playButton,
+.pauseButton {
+  width: 30px;
+  height: 30px;
+  top: 0;
+}
+
+.previousButton {
+  background-image: url("../assets/img/previous.svg");
+}
+
+.nextButton {
+  background-image: url("../assets/img/next.svg");
+}
+
+.playButton {
+  background-image: url("../assets/img/play.svg");
+}
+
+.pauseButton {
+  background-image: url("../assets/img/pause.svg");
+}
+
+.basicControls div:first-child {
+  margin-left: 0;
+}
+
+.basicControls div:last-child {
+  margin-right: 0;
+}
+```
+
+### Seeker Control<a name="seekerControl"></a>
+
+`app/components/Seeker.js`
+
+```
+import React, { Component } from 'react';
+import store from '../store';
+import InputRange from 'react-input-range';
+import MusicActions from '../actions/music';
+import styles from './Seeker.css';
+import { STARTED_PLAYING, STOPPED_PLAYING, ANIMATION_FRAME } from '../events';
+
+class Seeker extends Component {
+  constructor() {
+    super();
+    this.state = {
+      playingTime: undefined,
+      songTime: undefined
+    };
+    this.stopGrabbingPlaytime = true;
+    this.setSongTime = this.setSongTime.bind(this);
+    this.onScrubChange = this.onScrubChange.bind(this);
+    this.onScrubMouseDown = this.onScrubMouseDown.bind(this);
+    this.onScrubMouseUp = this.onScrubMouseUp.bind(this);
+    this.onSongStartPlaying = this.onSongStartPlaying.bind(this);
+    this.onSongStoppedPlaying = this.onSongStoppedPlaying.bind(this);
+  }
+
+  componentDidMount() {
+    store.on(ANIMATION_FRAME, this.setSongTime);
+    store.on(STARTED_PLAYING, this.onSongStartPlaying);
+    store.on(STOPPED_PLAYING, this.onSongStoppedPlaying);
+    global.store = store;
+  }
+
+  componentWillUnmount() {
+    store.removeListener(ANIMATION_FRAME, this.setSongTime);
+    store.removeListener(STARTED_PLAYING, this.onSongStartPlaying);
+    store.removeListener(STOPPED_PLAYING, this.onSongStoppedPlaying);
+  }
+
+  onSongStartPlaying() {
+    this.stopGrabbingPlaytime = false;
+    this.setState({
+      playingTime: store.getPlaytime(),
+      songTime: store.getSongDuration()
+    });
+  }
+
+  onSongStoppedPlaying() {
+    this.stopGrabbingPlaytime = true;
+    this.setState({
+      playingTime: undefined,
+      songTime: undefined
+    });
+  }
+
+  onScrubChange(component, value) {
+    this.seekSongTo = value / 1000;
+    this.setState({
+      playingTime: value / 1000
+    });
+  }
+
+  setSongTime() {
+    if (this.stopGrabbingPlaytime) {
+      return;
+    }
+    this.setState({
+      playingTime: store.getPlaytime(),
+      songTime: store.getSongDuration()
+    });
+  }
+
+  pad(value, size = 2) {
+    let s = String(value);
+    while (s.length < size) {
+      s = `0${s}`;
+    }
+    return s;
+  }
+
+  transformTime(time) {
+    if (Number.isNaN(time)) {
+      return '- -:- -';
+    }
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time - minutes * 60);
+    return `${minutes}:${this.pad(seconds)}`;
+  }
+
+  validateValue(value) {
+    if (Number.isNaN(value)) {
+      return 0;
+    }
+    return Math.min(value, this.state.songTime * 1000);
+  }
+
+  onScrubMouseDown(e) {
+    const className = e.target.className;
+    if (className.indexOf('InputRange-') === -1) {
+      return;
+    }
+    this.stopGrabbingPlaytime = true;
+    document.addEventListener('mouseup', this.onScrubMouseUp);
+  }
+
+  onScrubMouseUp() {
+    document.removeEventListener('mouseup', this.onScrubMouseUp);
+    this.stopGrabbingPlaytime = false;
+    MusicActions.seek(this.seekSongTo);
+  }
+
+  render() {
+    const playTime = Math.floor(this.state.playingTime);
+    const scrubTime = this.validateValue(playTime * 1000);
+    const totalTime = Math.floor(this.state.songTime);
+    return (
+      <div className={ styles.container }>
+        <div className={ styles.playingTime }>{ this.transformTime(playTime) }</div>
+        <div className="timeRange" onMouseDown={ this.onScrubMouseDown }>
+          <InputRange minValue={ 0 } maxValue={ Math.max(this.validateValue(totalTime * 1000), 1) } value={ scrubTime } onChange={ this.onScrubChange }/>
+        </div>
+        <div className={ styles.songTime }>{ this.transformTime(totalTime) }</div>
+      </div>
+    );
+  }
+}
+
+export default Seeker;
+```
+
+and the styles `app/component/Seeker.css`
+
+```
+.container {
+  position: absolute;
+  top: 0;
+  left: 100px;
+  right: 90px;
+}
+
+.playingTime {
+  position: absolute;
+  font-size: 10px;
+  left: 0;
+  top: 0;
+  line-height: 30px;
+  text-align: center;
+  width: 25px;
+}
+
+.songTime {
+  position: absolute;
+  font-size: 10px;
+  right: 0;
+  top: 0;
+  line-height: 30px;
+  text-align: center;
+  width: 25px;
+}
+```
+
+### Volume Control<a name="volumeControl"></a>
+
+`app/components/VolumeControl.js`
+
+```
+import React, { Component } from 'react';
+import store from '../store';
+import styles from './VolumeControl.css';
+import MusicActions from '../actions/music';
+import VolumeIconSvg from './VolumeIconSvg';
+import InputRange from 'react-input-range';
+import { MUTE_SOUND, UNMUTE_SOUND } from '../events';
+
+const MIN_VOLUME = 0;
+const MAX_VOLUME = 100;
+
+class VolumeControl extends Component {
+  constructor() {
+    super();
+    this.state = {
+      mute: store.isMuted(),
+      volume: store.getVolume()
+    };
+    this.savedVolume = this.state.volume;
+    this.toggleVolume = this.toggleVolume.bind(this);
+    this.onSoundMuted = this.onSoundMuted.bind(this);
+    this.onSoundUnmuted = this.onSoundUnmuted.bind(this);
+    this.onVolumeRangeChange = this.onVolumeRangeChange.bind(this);
+  }
+
+  componentDidMount() {
+    store.on(MUTE_SOUND, this.onSoundMuted);
+    store.on(UNMUTE_SOUND, this.onSoundUnmuted);
+  }
+
+  componentWillUnmount() {
+    store.removeListener(MUTE_SOUND, this.onSoundMuted);
+    store.removeListener(UNMUTE_SOUND, this.onSoundUnmuted);
+  }
+
+  onSoundMuted() {
+    this.savedVolume = this.state.volume;
+    this.setState({
+      mute: true,
+      volume: 0
+    });
+  }
+
+  onSoundUnmuted() {
+    this.setState({
+      mute: false,
+      volume: this.savedVolume
+    });
+  }
+
+  onVolumeRangeChange(component, value) {
+    this.setState({
+      volume: value
+    });
+    MusicActions.setVolume(value);
+  }
+
+  toggleVolume() {
+    if (this.state.mute) {
+      MusicActions.unmute(this.savedVolume);
+    } else {
+      MusicActions.mute();
+    }
+  }
+
+  render() {
+    return (
+      <div className={ this.props.className }>
+        <div className="volumeRange">
+          <InputRange minValue={ MIN_VOLUME } maxValue={ MAX_VOLUME } value={ this.state.volume } onChange={ this.onVolumeRangeChange }/>
+        </div>
+        <div className={ styles.volumeButton } onClick={ this.toggleVolume }>
+          <VolumeIconSvg volume={ this.state.volume / MAX_VOLUME } className={ styles.volumeIcon } fill="#FFFFFF"/>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default VolumeControl;
+```
+
+and the styles `app/components/VolumeControl.css`
+
+```
+.volumeIcon {
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.volumeButton {
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+}
+```
+
+### Volume Icon<a name="volumeIcon"></a>
+
+This component will just be an svg that will change the icon depending on the volume
+
+`app/components/VolumeIconSvg.js`
+
+```
+import React, { Component } from 'react';
+
+class VolumeIconSvg extends Component {
+  renderSoundOn() {
+    return (
+      <g>
+        <path d={`M34.437,7.413c-0.979-0.561-2.143-0.553-3.115,0.019c-0.063,0.037-0.121,0.081-0.174,0.131L17.906,19.891
+          C17.756,19.963,17.593,20,17.427,20H9.104C7.392,20,6,21.393,6,23.104v12.793C6,37.607,7.392,39,9.104,39h8.324
+          c0.166,0,0.329,0.037,0.479,0.109l13.242,12.328c0.053,0.05,0.112,0.094,0.174,0.131c0.492,0.289,1.033,0.434,1.574,0.434
+          c0.529,0,1.058-0.138,1.541-0.415C35.416,51.027,36,50.021,36,48.894V10.106C36,8.979,35.416,7.973,34.437,7.413z M34,48.894
+          c0,0.577-0.389,0.862-0.556,0.958c-0.158,0.09-0.562,0.262-1.025,0.037l-13.244-12.33c-0.054-0.051-0.113-0.095-0.176-0.131
+          C18.522,37.147,17.979,37,17.427,37H9.104C8.495,37,8,36.505,8,35.896V23.104C8,22.495,8.495,22,9.104,22h8.324
+          c0.551,0,1.095-0.147,1.572-0.428c0.063-0.036,0.122-0.08,0.176-0.131l13.244-12.33c0.465-0.226,0.868-0.053,1.025,0.037
+          C33.611,9.244,34,9.529,34,10.106V48.894z`} />
+        { this.props.volume > 0 ? <path d={`M39.707,20.293c-0.391-0.391-1.023-0.391-1.414,0s-0.391,1.023,0,1.414c4.297,4.297,4.297,11.289,0,15.586
+          c-0.391,0.391-0.391,1.023,0,1.414C38.488,38.902,38.744,39,39,39s0.512-0.098,0.707-0.293
+          C44.784,33.63,44.784,25.37,39.707,20.293z`}/> : null }
+        { this.props.volume >= 0.35 ? <path d={`M43.248,17.293c-0.391-0.391-1.023-0.391-1.414,0s-0.391,1.023,0,1.414c6.238,6.238,6.238,16.39,0,22.628
+          c-0.391,0.391-0.391,1.023,0,1.414c0.195,0.195,0.451,0.293,0.707,0.293s0.512-0.098,0.707-0.293
+          C50.266,35.73,50.266,24.312,43.248,17.293z`}/> : null }
+        { this.props.volume >= 0.70 ? <path d={`M46.183,12.293c-0.391-0.391-1.023-0.391-1.414,0s-0.391,1.023,0,1.414c4.356,4.355,6.755,10.142,6.755,16.293
+          s-2.399,11.938-6.755,16.293c-0.391,0.391-0.391,1.023,0,1.414C44.964,47.902,45.22,48,45.476,48s0.512-0.098,0.707-0.293
+          c4.734-4.733,7.341-11.021,7.341-17.707S50.917,17.026,46.183,12.293z`}/> : null }
+        <path d={`M30,0C13.458,0,0,13.458,0,30s13.458,30,30,30s30-13.458,30-30S46.542,0,30,0z M30,58C14.561,58,2,45.439,2,30
+          S14.561,2,30,2s28,12.561,28,28S45.439,58,30,58z`}/>
+      </g>
+    );
+  }
+
+  renderMuted() {
+    return (
+      <path d={`M51.213,8.78C39.517-2.917,20.484-2.916,8.787,8.78C3.121,14.446,0,21.98,0,29.993S3.121,45.54,8.787,51.206
+              c5.848,5.849,13.531,8.772,21.213,8.772s15.365-2.924,21.213-8.772C62.91,39.509,62.91,20.477,51.213,8.78z M10.201,10.194
+              C15.66,4.736,22.83,2.007,30,2.007c6.858,0,13.713,2.504,19.074,7.498L42,16.579v-6.479c0-1.127-0.584-2.134-1.563-2.693
+              c-0.978-0.561-2.143-0.553-3.115,0.019c-0.063,0.037-0.121,0.081-0.174,0.131L23.906,19.884c-0.149,0.072-0.313,0.109-0.479,0.109
+              h-8.324c-1.711,0-3.104,1.393-3.104,3.104v12.793c0,1.711,1.392,3.104,3.104,3.104h4.482L9.511,49.068
+              C4.664,43.869,2,37.137,2,29.993C2,22.514,4.913,15.483,10.201,10.194z M21.586,36.993h-6.482c-0.608,0-1.104-0.495-1.104-1.104
+              V23.096c0-0.608,0.495-1.104,1.104-1.104h8.324c0.551,0,1.095-0.147,1.572-0.428c0.063-0.036,0.122-0.08,0.176-0.131l13.244-12.33
+              c0.465-0.226,0.868-0.053,1.025,0.037C39.611,9.237,40,9.522,40,10.099v8.479L21.586,36.993z M40,21.407v27.479
+              c0,0.577-0.389,0.862-0.556,0.958c-0.158,0.09-0.562,0.262-1.025,0.037l-13.244-12.33c-0.054-0.051-0.113-0.095-0.176-0.131
+              c-0.224-0.132-0.466-0.229-0.713-0.3L40,21.407z M49.799,49.792c-10.68,10.679-27.908,10.904-38.873,0.689l11.488-11.488h1.013
+              c0.166,0,0.329,0.037,0.479,0.109L37.148,51.43c0.053,0.05,0.112,0.094,0.174,0.131c0.492,0.289,1.033,0.434,1.574,0.434
+              c0.529,0,1.058-0.138,1.541-0.415C41.416,51.02,42,50.013,42,48.887V19.407l8.488-8.488C60.704,21.884,60.479,39.112,49.799,49.792z
+              `}/>
+    );
+  }
+
+  render() {
+    return (
+      <svg fill={ this.props.fill } className={ this.props.className } viewBox="0 0 60 60" preserveAspectRatio="xMidYMid meet">
+          { this.props.volume === 0 ? this.renderMuted() : this.renderSoundOn() }
+      </svg>
+    );
+  }
+}
+
+export default VolumeIconSvg;
+```
+
+### Animation frame on the store<a name="animationFrame"></a>
+
+What this will do is to trigger an event every single frame, so we can update the seeker and later on the spectrum
+
+Open `app/store/index.js`
+
+```
+...
+  constructor() {
+    super();
+    this.songsList = [];
+    this.playingSong = null;
+    this.volume = 100;
+    this.isMute = false;
+    this.onSongFinished = this.onSongFinished.bind(this);
+    this.reportAnimation = this.reportAnimation.bind(this);
+    this.audioController = new AudioController(this.volume);
+    this.audioController.on('songFinished', this.onSongFinished);
+    this.reportAnimation();
+  }
+
+  reportAnimation() {
+    this.emit(ANIMATION_FRAME);
+    global.requestAnimationFrame(this.reportAnimation);
+  }
+...
+```
+
+### Adding the Music Controls to the Home Component<a name="musicControlsHome"></a>
+
+Let's now add the controllers to our `app/components/Home.js`
+
+```
+...
+import MusicControls from './MusicControls';
+...
+
+  render() {
+    let className = styles.homeContainer;
+    return (
+      <div className={ className }>
+        <div className={ styles.playerTitle }>
+          <div className={ styles.closeButton } onClick={this.onCloseClick}></div>
+          <div className={ styles.menuButton } onClick={this.onMenuClick}></div>
+        </div>
+        <div className={styles.musicControls}>
+          <MusicControls />
+        </div>
+      </div>
+    );
+  }
+```
+
+We need to add more stylings to `app/components/Home.css`
+
+```
+...
+
+.musicControls {
+  position: absolute;
+  top: 30%;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.musicControls h2 {
+  font-size: 5rem;
+}
+
+.musicControls a {
+  font-size: 1.4rem;
+}
+```
+
+[Music controls](tutorial/images/musicControls.png)
+
+The result is probably not what we expected, but we'll fix it later
+
+## Finishing the store<a name="finishingStore"></a>
+
+Let's finish the store now so we focus ourselves in the styling of the app
+
+Open `app/store/index.js`
+
+```
+...
+import {
+  CLOSE_WINDOW,
+  REORDER_LIST,
+  OPEN_LIST,
+  CLOSE_LIST,
+  DRAGGING_FILES,
+  NOT_DRAGGING_FILES,
+  DROP_FILES,
+  REMOVE_FROM_LIST,
+  LIST_UPDATE,
+  STARTED_PLAYING,
+  STOPPED_PLAYING,
+  PLAY_SONG,
+  PAUSE_SONG,
+  PLAY_NEXT_SONG,
+  PLAY_PREVIOUS_SONG,
+  RESTART_SONG,
+  SEEK_SONG,
+  MUTE_SOUND,
+  UNMUTE_SOUND,
+  SET_VOLUME,
+  ANIMATION_FRAME
+} from '../events';
+
+const NUMBER_OF_SPECTRUM_BARS = 16;
+
+...
+
+  stopSong(file) {
+    if (!file) {
+      return;
+    }
+    this.emit(STOPPED_PLAYING, this.playingSong);
+    this.playingSong = null;
+    this.audioController.stop(false);
+  }
+
+  restartSong() {
+    this.audioController.restart();
+  }
+
+  ...
+
+  mute() {
+    this.isMute = true;
+    this.audioController.mute();
+    this.emit(MUTE_SOUND);
+  }
+
+  unmute(volume) {
+    this.isMute = false;
+    this.audioController.unmute(volume);
+    this.emit(UNMUTE_SOUND);
+  }
+
+  setVolume(volume) {
+    this.audioController.setVolume(volume);
+    this.volume = volume;
+    this.emit(SET_VOLUME, volume);
+  }
+
+  getPlaytime() {
+    return this.audioController.getCurrentPlayingTime();
+  }
+
+  getSongDuration() {
+    return this.audioController.getSongDuration();
+  }
+
+  seek(value) {
+    this.audioController.seek(value);
+  }
+
+  getFrequency() {
+    // we want to reuse the array to avoid creating multiple ones
+    const average = new Array(NUMBER_OF_SPECTRUM_BARS).fill(0);
+    let i = 0;
+    this.frequencies = this.frequencies || null;
+    this.frequencies = this.audioController.getFrequency(this.frequencies);
+    if (!this.frequencies) {
+      return average;
+    }
+    const averageStep = this.frequencies.length / NUMBER_OF_SPECTRUM_BARS;
+    for (i = 0; i < NUMBER_OF_SPECTRUM_BARS; i++) {
+      average[i] = this.audioController.analyserAverage(this.frequencies, i * averageStep, (i + 1) * averageStep);
+    }
+    return average;
+  }
+```
+
+There we go, we should now be all done with the store
+
+## Fixing the styles for the seeker<a name="fixingSeeker"></a>
+
+Open the `app/app.html` file and add the input range css
+
+```
+...
+    <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="../node_modules/react-input-range/dist/react-input-range.min.css" />
+...
+```
+
+Add it as an external component to `webpack.config.electron.js`
+
+```
+...
+  externals: [
+    'font-awesome',
+    'react-input-range',
+    'source-map-support'
+  ]
+...
+```
+
+Open `app/app.global.css` and add the following
+
+```
+...
+.volumeRange {
+  position: absolute;
+  left: 40px;
+  width: 30px;
+  height: 30px;
+  top: 7px;
+}
+
+.timeRange {
+  position: absolute;
+  left: 35px;
+  right: 35px;
+  height: 30px;
+  top: 7px;
+}
+
+.volumeRange .InputRange,
+.timeRange .InputRange {
+  cursor: default;
+}
+
+.timeRange .InputRange-label--min,
+.timeRange .InputRange-label--max,
+.timeRange .InputRange-label--value,
+.volumeRange .InputRange-label--min,
+.volumeRange .InputRange-label--max,
+.volumeRange .InputRange-label--value {
+  display: none;
+}
+
+.timeRange .InputRange-slider,
+.volumeRange .InputRange-slider {
+  top: 2px;
+  width: 10px;
+  height: 10px;
+}
+
+.timeRange .InputRange-sliderContainer,
+.timeRange .InputRange-track,
+.volumeRange .InputRange-sliderContainer,
+.volumeRange .InputRange-track {
+  -webkit-transition: none;
+  -moz-transition: none;
+  transition: none;
+}
+```
+
+Here's the result
+
+![Seeker Sample](tutorial/images/SeekerSample.png)
+
+Looking good
+
+## Adding Cover<a name="addingCover"></a>
+
+Create a new component `app/components/SongCover.js`
+
+```
+import React, { Component } from 'react';
+import configureStore from '../store/configureStore';
+import styles from './SongCover.css';
+import { STARTED_PLAYING } from '../events';
+
+const UNKNOWN_URL = './assets/img/unknown-cover.svg';
+
+class SongCover extends Component {
+  constructor() {
+    super();
+    this.onSongPlaying = this.onSongPlaying.bind(this);
+    this.state = {
+      url: UNKNOWN_URL
+    };
+  }
+
+  componentDidMount() {
+    configureStore.on(STARTED_PLAYING, this.onSongPlaying);
+  }
+
+  componentWillUnmount() {
+    configureStore.removeListener(STARTED_PLAYING, this.onSongPlaying);
+  }
+
+  onSongPlaying(file) {
+    if (file.cover) {
+      this.setState({
+        url: file.cover
+      });
+    } else {
+      file.findCover().then((cover) => {
+        this.setState({
+          url: cover
+        });
+      }).catch(() => {
+        this.setState({
+          url: UNKNOWN_URL
+        });
+      });
+    }
+  }
+
+  render() {
+    const innerStyles = {
+      backgroundImage: `url(${this.state.url})`
+    };
+    return (
+      <div className={ styles.container } style={ innerStyles }></div>
+    );
+  }
+}
+
+export default SongCover;
+```
+
+And the styles `app/components/SongCover.css`
+
+```
+.container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 50%;
+  background-size: 100%;
+  margin: auto;
+}
+```
+
+Now let's add the component to `app/components/Home.js`
+
+```
+...
+import SongCover from './SongCover';
+...
+  render() {
+    let className = styles.homeContainer;
+    return (
+      <div className={ className }>
+        <div className={ styles.playerTitle }>
+          <div className={ styles.closeButton } onClick={this.onCloseClick}></div>
+          <div className={ styles.menuButton } onClick={this.onMenuClick}></div>
+        </div>
+        <div className={styles.musicControls}>
+          <SongCover />
+          <MusicControls />
+        </div>
+      </div>
+    );
+  }
+```
+
+![With Cover](tutorial/images/WithCover.png)
+
+
+## Player Spectrum<a name="playerSpectrum"></a>
+
+Let's create a new file `app/components/PlayerSpectrum.js`
+
+```
+import React, { Component } from 'react';
+import store from '../store';
+import styles from './PlayerSpectrum.css';
+import { ANIMATION_FRAME } from '../events';
+
+class PlayerSpectrum extends Component {
+  constructor() {
+    super();
+    this.state = {
+      bars: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    };
+    this.getSpectrum = this.getSpectrum.bind(this);
+  }
+
+  componentDidMount() {
+    store.on(ANIMATION_FRAME, this.getSpectrum);
+  }
+
+  componentWillUnmount() {
+    store.removeListener(ANIMATION_FRAME, this.getSpectrum);
+  }
+
+  getSpectrum() {
+    this.setState({
+      bars: store.getFrequency()
+    });
+  }
+
+  render() {
+    return (
+      <div className={ styles.container }>
+        {
+          this.state.bars.map((item, index) => {
+            return (
+              <div key={ index } className={ styles.spectrumBar } style={{ left: `${6.25 * index}%`, height: `${Math.ceil(this.state.bars[index] * 100)}%` }}></div>
+            );
+          })
+        }
+      </div>
+    );
+  }
+}
+
+export default PlayerSpectrum;
+```
+
+With the styles `app/components/PlayerSpectrum.css`
+
+```
+.container {
+  position: absolute;
+  width: 100%;
+  height: 200px;
+  bottom: 0;
+  left: 0;
+  -webkit-filter: url("#goo");
+  filter: url("#goo");
+}
+
+.spectrumBar {
+  position: absolute;
+  width: 6.25%;
+  bottom: 0;
+  float: left;
+  background: #ad2a2a;
+}
+```
+
+And again let's add it to `app/components/Home.js`
+
+```
+...
+import PlayerSpectrum from './PlayerSpectrum';
+...
+  render() {
+    let className = styles.homeContainer;
+    return (
+      <div className={ className }>
+        <div className={ styles.playerTitle }>
+          <div className={ styles.closeButton } onClick={this.onCloseClick}></div>
+          <div className={ styles.menuButton } onClick={this.onMenuClick}></div>
+        </div>
+        <div className={styles.musicControls}>
+          <PlayerSpectrum />
+          <SongCover />
+          <MusicControls />
+        </div>
+      </div>
+    );
+  }
+```
+
+![Spectrum](tutorial/images/Spectrum.png)
+
+
+### Adding the gooey effect<a name="gooey"></a>
+
+For better understanding of the effect please refer to the [codrops article](http://tympanus.net/codrops/2015/03/10/creative-gooey-effects/)
+
+Open `app/app.html` and add the following to the top of the body
+
+```
+...
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="800" style="display: none; position: absolute; top: 0; left: 0;">
+  <defs>
+    <filter id="goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" result="goo" />
+    </filter>
+  </defs>
+</svg>
+...
+```
+
+And we're done
+
+![Gooey](tutorial/images/gooey.png)
+
+
+## Blur on dragging files
+
+Open `app/components/Home.js`
+
+```
+import React, { Component } from 'react';
+import store from '../store';
+import styles from './Home.css';
+import HomeActions from '../actions/home';
+import MusicControls from './MusicControls';
+import SongCover from './SongCover';
+import PlayerSpectrum from './PlayerSpectrum';
+import { DRAGGING_FILES, NOT_DRAGGING_FILES, OPEN_LIST, CLOSE_LIST } from '../events';
+...
+
+  constructor() {
+    super();
+    this.onCloseClick = this.onCloseClick.bind(this);
+    this.onDragStart = this.onDragStart.bind(this);
+    this.onDragStop = this.onDragStop.bind(this);
+    this.onMenuOpened = this.onMenuOpened.bind(this);
+    this.onMenuClosed = this.onMenuClosed.bind(this);
+    this.state = {
+      isDragging: false,
+      isMenuOpened: false
+    };
+  }
+
+  componentDidMount() {
+    store.on(DRAGGING_FILES, this.onDragStart);
+    store.on(NOT_DRAGGING_FILES, this.onDragStop);
+    store.on(OPEN_LIST, this.onMenuOpened);
+    store.on(CLOSE_LIST, this.onMenuClosed);
+  }
+
+  componentWillUnmount() {
+    store.removeListener(DRAGGING_FILES, this.onDragStart);
+    store.removeListener(NOT_DRAGGING_FILES, this.onDragStop);
+    store.removeListener(OPEN_LIST, this.onMenuOpened);
+    store.removeListener(CLOSE_LIST, this.onMenuClosed);
+  }
+
+  onMenuOpened() {
+    this.setState({
+      isMenuOpened: true
+    });
+  }
+
+  onMenuClosed() {
+    this.setState({
+      isMenuOpened: false
+    });
+  }
+
+  onDragStart() {
+    this.setState({
+      isDragging: true
+    });
+  }
+
+  onDragStop() {
+    this.setState({
+      isDragging: false
+    });
+  }
+
+
+  ...
+
+
+  render() {
+    let className = styles.homeContainer;
+    if (this.state.isDragging) {
+      className += ` ${styles.filesOver}`;
+    }
+    if (this.state.isMenuOpened) {
+      className += ` ${styles.fileListOpened}`;
+    }
+    return (
+      <div className={ className }>
+        <div className={ styles.playerTitle }>
+          <div className={ styles.closeButton } onClick={this.onCloseClick}></div>
+          <div className={ styles.menuButton } onClick={this.onMenuClick}></div>
+        </div>
+        <div className={styles.musicControls}>
+          <PlayerSpectrum />
+          <SongCover />
+          <MusicControls />
+        </div>
+      </div>
+    );
+  }
+```
+
+
+We are done with this one now.
+
+Let's build it using `npm run package`
+
+When the command is complete open the generated file from the `release` folder and give it a go.
+
+Hope you liked it.
+
+Please use the issues tab for feedback or actual issues found during the tutorial.
+
+Till next time.

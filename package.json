@@ -108,6 +108,7 @@
     "postcss": "^5.1.0",
     "react": "^15.3.0",
     "react-dom": "^15.3.0",
+    "react-input-range": "^0.9.1",
     "react-sortable": "^1.0.3",
     "source-map-support": "^0.4.2"
   },

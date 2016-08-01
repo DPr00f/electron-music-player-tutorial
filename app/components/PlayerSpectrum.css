@@ -1,0 +1,17 @@
+.container {
+  position: absolute;
+  width: 100%;
+  height: 200px;
+  bottom: 0;
+  left: 0;
+  -webkit-filter: url("#goo");
+  filter: url("#goo");
+}
+
+.spectrumBar {
+  position: absolute;
+  width: 6.25%;
+  bottom: 0;
+  float: left;
+  background: #ad2a2a;
+}

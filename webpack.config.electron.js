@@ -38,6 +38,7 @@ export default merge(baseConfig, {
 
   externals: [
     'font-awesome',
+    'react-input-range',
     'source-map-support'
   ]
 });

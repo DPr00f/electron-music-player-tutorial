@@ -46,3 +46,20 @@
   height: 32px;
   -webkit-app-region: no-drag;
 }
+
+.musicControls {
+  position: absolute;
+  top: 30%;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.musicControls h2 {
+  font-size: 5rem;
+}
+
+.musicControls a {
+  font-size: 1.4rem;
+}
