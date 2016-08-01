@@ -1,10 +1,10 @@
 import React from 'react';
 import { render } from 'react-dom';
+import Home from './components/Home';
 import './app.global.css';
+import './store';
 
 render(
-  <div>
-    <h1>Hello world</h1>
-  </div>,
+  <Home />,
   document.getElementById('root')
 );

@@ -1,0 +1,48 @@
+.homeContainer {
+  -webkit-filter: blur(0);
+  filter: blur(0);
+  -webkit-transition: all 0.3s;
+  -moz-transition: all 0.3s;
+  transition: all 0.3s;
+}
+
+.fileListOpened {
+  -webkit-filter: blur(3px);
+  filter: blur(3px);
+}
+
+.filesOver {
+  -webkit-filter: blur(10px);
+  filter: blur(10px);
+}
+
+.playerTitle {
+  height: 105px;
+  background: #3a3a3a;
+  -webkit-user-select: none;
+  -webkit-app-region: drag;
+}
+
+.menuButton {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  background: url("../assets/img/menu.svg");
+  background-size: 100%;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  -webkit-app-region: no-drag;
+}
+
+.closeButton {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  background: url("../assets/img/close.svg");
+  background-size: 100%;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  -webkit-app-region: no-drag;
+}
