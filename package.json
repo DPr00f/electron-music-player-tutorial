@@ -98,6 +98,7 @@
   "dependencies": {
     "css-modules-require-hook": "^4.0.1",
     "electron-debug": "^1.0.1",
+    "extract-text-webpack-plugin": "^1.0.1",
     "font-awesome": "^4.6.3",
     "postcss": "^5.1.0",
     "react": "^15.3.0",

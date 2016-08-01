@@ -7,6 +7,8 @@
 1. [What we'll need](#dependencies)
 1. [Setting up our app](#appSetup)
     1. [Cleanup package.json](#appSetupCleanPackage)
+    1. [Cleanup app](#appSetupCleanApp)
+    1. [Cleanup index.js](#appSetupCleanIndex)
 
 ## Introduction<a name="intro"></a>
 
@@ -36,7 +38,6 @@ Change the package name and all the related information to the product.
 Now we'll remove unnecessary dependencies
 ```
 // Found in devDependencies
-"extract-text-webpack-plugin": "^1.0.1",
 "redux-logger": "^2.6.1",
 
 // Found in dependencies
@@ -48,3 +49,40 @@ Now we'll remove unnecessary dependencies
 ```
 
 Here's how the [package.json should look](https://github.com/DPr00f/electron-music-player-tutorial/blob/707049a2f6f6a8ea45a73f6166c0372c1d276cb9/README.md)
+
+### Cleanup app<a name="appSetupCleanApp"></a>
+
+Locate the app folder and remove all files and folders, leaving only
+
+- app.html
+- app.icns
+- app.global.css
+- index.js
+
+Here's what you should endup with
+
+![Files and folders](tutorial/images/howLook.png)
+
+### Cleanup index.js<a name="appSetupCleanIndex"></a>
+Locate `app/index.js` and clean it up as follows
+
+```
+import React from 'react';
+import { render } from 'react-dom';
+import './app.global.css';
+
+render(
+  <div>
+    <h1>Hello world</h1>
+  </div>,
+  document.getElementById('root')
+);
+```
+
+Now we are ready to test the app and see if everything went fine
+
+On your terminal run
+`npm install`
+
+When that's done execute
+`npm run dev`
