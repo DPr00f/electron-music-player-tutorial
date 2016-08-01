@@ -3,7 +3,7 @@ import styles from './SortableListItem.css';
 import { Sortable } from 'react-sortable';
 
 class ListItem extends Component {
-  constructor() {
+  constructor(props) {
     super();
     this.onPlayButtonClickProxy = this.onPlayButtonClickProxy.bind(this);
     this.onPauseButtonClickProxy = this.onPauseButtonClickProxy.bind(this);
@@ -14,8 +14,8 @@ class ListItem extends Component {
     e.preventDefault();
     e.stopPropagation();
     const position = parseInt(e.target.parentNode.dataset.id, 10);
-    if (this.props.onPlayButtonClick) {
-      this.props.onPlayButtonClick.call(null, this.props.items[position]);
+    if (this.props.children.onPlayButtonClick) {
+      this.props.children.onPlayButtonClick.call(null, this.props.children.items[position]);
     }
   }
 
@@ -23,20 +23,20 @@ class ListItem extends Component {
     e.preventDefault();
     e.stopPropagation();
     const position = parseInt(e.target.parentNode.dataset.id, 10);
-    if (this.props.onPauseButtonClick) {
-      this.props.onPauseButtonClick.call(null, this.props.items[position]);
+    if (this.props.children.onPauseButtonClick) {
+      this.props.children.onPauseButtonClick.call(null, this.props.children.items[position]);
     }
   }
 
   onClickProxy(e) {
     const position = parseInt(e.target.parentNode.dataset.id, 10);
-    if (this.props.onClick) {
-      this.props.onClick.call(null, this.props.items[position]);
+    if (this.props.children.onClick) {
+      this.props.children.onClick.call(null, this.props.children.items[position]);
     }
   }
 
   render() {
-    let className = `${styles.item} ListItem__${this.props.className}`;
+    let className = `${styles.item} ListItem__${this.props.children.className}`;
     if (this.props.selected) {
       className += ` ${styles['is-selected']}`;
     }
@@ -56,7 +56,7 @@ class ListItem extends Component {
               className={ className }
           >
             <span className={ styles.itemNumber }></span>
-            <span className={ styles.itemName }>{ this.props.item.displayName }</span>
+            <span className={ styles.itemName }>{ this.props.children.item.displayName }</span>
             { !this.props.isPlaying || this.props.isPaused ?
                       <i className={ styles.playButton } onClick={ this.onPlayButtonClickProxy }></i> :
                       <i className={ styles.pauseButton } onClick={ this.onPauseButtonClickProxy }></i>

@@ -70,19 +70,22 @@ class SortableList extends Component {
       return (
           <SortableListItem
               key={ i }
-              isPlaying={ this.props.songPlaying && this.props.songPlaying.id === item.id }
-              isPaused={ this.props.songPlaying && this.props.songPlaying.paused }
-              selected={ this.props.selectedItems.indexOf(item.id) > -1 }
               updateState={ this.onStateUpdate }
               items={ this.state.data }
               draggingIndex={ this.state.draggingIndex }
               sortId={ i }
               outline="list"
-              onPlayButtonClick={ this.props.onPlayButtonClick }
-              onPauseButtonClick={ this.props.onPauseButtonClick }
-              onClick={ this.props.toggleItem }
-              className={ i % 2 === 0 ? 'is-even' : 'is-odd' }
-              item={ item }/>
+            >{{ // We need to add it to the children so that react-sortable passes it down to our component
+              className: i % 2 === 0 ? 'is-even' : 'is-odd',
+              onPlayButtonClick: this.props.onPlayButtonClick,
+              onPauseButtonClick: this.props.onPauseButtonClick,
+              onClick: this.props.toggleItem,
+              isPlaying: this.props.songPlaying && this.props.songPlaying.id === item.id,
+              isPaused: this.props.songPlaying && this.props.songPlaying.paused,
+              selected: this.props.selectedItems.indexOf(item.id) > -1,
+              items: this.state.data,
+              item
+            }}</SortableListItem>
       );
     }, this);
 

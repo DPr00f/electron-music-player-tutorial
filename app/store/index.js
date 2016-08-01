@@ -1,6 +1,7 @@
 import Dispatcher from '../dispatcher';
 import { remote } from 'electron';
 import EventEmitter from 'events';
+import WaterFallOver from '../utils/WaterFallOver';
 import {
   CLOSE_WINDOW,
   REORDER_LIST,
@@ -44,7 +45,22 @@ class Store extends EventEmitter {
   }
 
   addToList(files) {
-    console.log('addToList: TODO');
+    let nextId = this.songsList.length;
+    const waterFall = new WaterFallOver(files);
+    const onProcessFile = (obj) => {
+      obj.item.id = nextId++;
+      obj.item.readTags().then(() => {
+        this.songsList.push(obj.item);
+        this.emit(LIST_UPDATE);
+        obj.next();
+      });
+    };
+    const onFinish = () => {
+      waterFall.removeListener('process', onProcessFile);
+    };
+    waterFall.on('process', onProcessFile);
+    waterFall.once('finish', onFinish);
+    waterFall.execute();
   }
 
   removeFromList(ids) {

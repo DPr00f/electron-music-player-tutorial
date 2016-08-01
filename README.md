@@ -714,19 +714,22 @@ class SortableList extends Component {
       return (
           <SortableListItem
               key={ i }
-              isPlaying={ this.props.songPlaying && this.props.songPlaying.id === item.id }
-              isPaused={ this.props.songPlaying && this.props.songPlaying.paused }
-              selected={ this.props.selectedItems.indexOf(item.id) > -1 }
               updateState={ this.onStateUpdate }
               items={ this.state.data }
               draggingIndex={ this.state.draggingIndex }
               sortId={ i }
               outline="list"
-              onPlayButtonClick={ this.props.onPlayButtonClick }
-              onPauseButtonClick={ this.props.onPauseButtonClick }
-              onClick={ this.props.toggleItem }
-              className={ i % 2 === 0 ? 'is-even' : 'is-odd' }
-              item={ item }/>
+            >{{ // We need to add it to the children so that react-sortable passes it down to our component
+              className: i % 2 === 0 ? 'is-even' : 'is-odd',
+              onPlayButtonClick: this.props.onPlayButtonClick,
+              onPauseButtonClick: this.props.onPauseButtonClick,
+              onClick: this.props.toggleItem,
+              isPlaying: this.props.songPlaying && this.props.songPlaying.id === item.id,
+              isPaused: this.props.songPlaying && this.props.songPlaying.paused,
+              selected: this.props.selectedItems.indexOf(item.id) > -1,
+              items: this.state.data,
+              item
+            }}</SortableListItem>
       );
     }, this);
 
@@ -751,7 +754,7 @@ import styles from './SortableListItem.css';
 import { Sortable } from 'react-sortable';
 
 class ListItem extends Component {
-  constructor() {
+  constructor(props) {
     super();
     this.onPlayButtonClickProxy = this.onPlayButtonClickProxy.bind(this);
     this.onPauseButtonClickProxy = this.onPauseButtonClickProxy.bind(this);
@@ -762,8 +765,8 @@ class ListItem extends Component {
     e.preventDefault();
     e.stopPropagation();
     const position = parseInt(e.target.parentNode.dataset.id, 10);
-    if (this.props.onPlayButtonClick) {
-      this.props.onPlayButtonClick.call(null, this.props.items[position]);
+    if (this.props.children.onPlayButtonClick) {
+      this.props.children.onPlayButtonClick.call(null, this.props.children.items[position]);
     }
   }
 
@@ -771,20 +774,20 @@ class ListItem extends Component {
     e.preventDefault();
     e.stopPropagation();
     const position = parseInt(e.target.parentNode.dataset.id, 10);
-    if (this.props.onPauseButtonClick) {
-      this.props.onPauseButtonClick.call(null, this.props.items[position]);
+    if (this.props.children.onPauseButtonClick) {
+      this.props.children.onPauseButtonClick.call(null, this.props.children.items[position]);
     }
   }
 
   onClickProxy(e) {
     const position = parseInt(e.target.parentNode.dataset.id, 10);
-    if (this.props.onClick) {
-      this.props.onClick.call(null, this.props.items[position]);
+    if (this.props.children.onClick) {
+      this.props.children.onClick.call(null, this.props.children.items[position]);
     }
   }
 
   render() {
-    let className = `${styles.item} ListItem__${this.props.className}`;
+    let className = `${styles.item} ListItem__${this.props.children.className}`;
     if (this.props.selected) {
       className += ` ${styles['is-selected']}`;
     }
@@ -804,7 +807,7 @@ class ListItem extends Component {
               className={ className }
           >
             <span className={ styles.itemNumber }></span>
-            <span className={ styles.itemName }>{ this.props.item.displayName }</span>
+            <span className={ styles.itemName }>{ this.props.children.item.displayName }</span>
             { !this.props.isPlaying || this.props.isPaused ?
                       <i className={ styles.playButton } onClick={ this.onPlayButtonClickProxy }></i> :
                       <i className={ styles.pauseButton } onClick={ this.onPauseButtonClickProxy }></i>
@@ -818,7 +821,9 @@ export default Sortable(ListItem);
 
 This component will take care of a single item on the list, but it requires another npm module called `react-sortable`.
 
-Let's add it by executing `npm i react-sortable -D` from the command line
+For more info on the module please refer to the [github page](https://github.com/danielstocks/react-sortable)
+
+Let's add it by executing `npm i react-sortable -S` from the command line
 
 We've didn't add the styles for the components.
 

@@ -89,7 +89,6 @@
     "mocha": "^2.5.3",
     "node-libs-browser": "^1.0.0",
     "react-addons-test-utils": "^15.3.0",
-    "react-sortable": "^1.0.3",
     "sinon": "^1.17.4",
     "spectron": "^3.2.6",
     "style-loader": "^0.13.1",
@@ -109,6 +108,7 @@
     "postcss": "^5.1.0",
     "react": "^15.3.0",
     "react-dom": "^15.3.0",
+    "react-sortable": "^1.0.3",
     "source-map-support": "^0.4.2"
   },
   "devEngines": {
