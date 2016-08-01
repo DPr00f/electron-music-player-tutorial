@@ -48,7 +48,7 @@ Now we'll remove unnecessary dependencies
 "redux-thunk": "^2.1.0",
 ```
 
-Here's how the [package.json should look](https://github.com/DPr00f/electron-music-player-tutorial/blob/707049a2f6f6a8ea45a73f6166c0372c1d276cb9/README.md)
+Here's how the [package.json should look](https://github.com/DPr00f/electron-music-player-tutorial/blob/ff23691b5ef579c5f6702a8c54f3dc40ddc65967/package.json)
 
 ### Cleanup app<a name="appSetupCleanApp"></a>
 
