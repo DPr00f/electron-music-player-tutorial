@@ -86,7 +86,7 @@ Go ahead and download or clone [Electron React Boilerplate](https://github.com/c
 Change the package name and all the related information to the product.
 
 Now we'll remove unnecessary dependencies
-```
+```json
 // Found in devDependencies
 "redux-logger": "^2.6.1",
 
@@ -116,7 +116,7 @@ Here's what you should endup with
 ### Cleanup index.js<a name="appSetupCleanIndex"></a>
 Locate `app/index.js` and clean it up as follows
 
-```
+```javascript
 import React from 'react';
 import { render } from 'react-dom';
 import './app.global.css';
@@ -155,7 +155,7 @@ Locate `app.on('ready', async () => {`
 
 In that block of code you can see a `mainWindow` variable
 Replace it with
-```
+```javascript
 mainWindow = new BrowserWindow({
     show: false,
     width: 318,
@@ -185,7 +185,7 @@ To avoid errors down the line we'll need to install a webpack image loader
 `npm i image-webpack-loader -D`
 
 And on `webpack.config.base.js` we'll add
-```
+```javascript
 {
     test: /\.(jpe?g|png|gif|svg)$/i,
     loaders: [
@@ -199,7 +199,7 @@ This way all our css will load the images correctly
 
 Let's create our first component `app/components/Home.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import styles from './Home.css';
 
@@ -234,7 +234,7 @@ export default class Home extends Component {
 
 Please note that we don't have a `Home.css` yet, let's create one at `app/components/Home.css`
 
-```
+```css
 .homeContainer {
   -webkit-filter: blur(0);
   filter: blur(0);
@@ -287,7 +287,7 @@ Please note that we don't have a `Home.css` yet, let's create one at `app/compon
 
 We now need to update the `index.js`
 
-```
+```javascript
 import React from 'react';
 import { render } from 'react-dom';
 import Home from './components/Home';
@@ -313,7 +313,7 @@ For starters let's remove the border around the gray area
 
 On `app/app.global.css` let's replace all it's contents with
 
-```
+```css
 body {
   position: relative;
   color: white;
@@ -333,7 +333,7 @@ Time to get those buttons to work.
 
 Create a new file `app/dispatcher/index.js`
 
-```
+```javascript
 import { Dispatcher } from 'flux';
 
 class ApplicationDispatcher extends Dispatcher {
@@ -350,7 +350,7 @@ That's all we need but we need to install flux, so from the command line type in
 
 Let's generate the store, create a new file `app/store/index.js`
 
-```
+```javascript
 import Dispatcher from '../dispatcher';
 import { remote } from 'electron';
 import EventEmitter from 'events';
@@ -385,7 +385,7 @@ We need events and an action to trigger those events
 
 Create a new file `app/events/index.js`
 
-```
+```javascript
 export const CLOSE_WINDOW = 'CLOSE_WINDOW';
 export const OPEN_LIST = 'OPEN_LIST';
 export const CLOSE_LIST = 'CLOSE_LIST';
@@ -395,7 +395,7 @@ export const CLOSE_LIST = 'CLOSE_LIST';
 
 One more file... `app/actions/home.js`
 
-```
+```javascript
 import Dispatcher from '../Dispatcher';
 import { CLOSE_WINDOW, OPEN_LIST } from '../events';
 
@@ -424,7 +424,7 @@ Open `app/components/Home.js` and let's start
 
 Import the home actions and call it in the close button
 
-```
+```javascript
 import HomeActions from '../actions/home';
 
 ...
@@ -444,7 +444,7 @@ Now let's open `app/store/index`
 
 Where we register the Dispatcher events let's make sure it looks like the following
 
-```
+```javascript
 Dispatcher.register((action) => {
   switch (action.actionType) {
     case CLOSE_WINDOW:
@@ -463,14 +463,14 @@ Dispatcher.register((action) => {
 
 Also we need to make sure that we're importing those events
 
-```
+```javascript
 import { CLOSE_WINDOW, OPEN_LIST } from '../events';
 ```
 
 Nothing will happen if we run the app now because the store is not being imported anywhere,
 so let's open `app/index.js` and import the store.
 
-```
+```javascript
 import React from 'react';
 import { render } from 'react-dom';
 import Home from './components/Home';
@@ -492,7 +492,7 @@ If something went wrong you won't be seeing any content on the page, make sure y
 
 Let's start by adding our new component to `app/index.js`
 
-```
+```javascript
 import React from 'react';
 import { render } from 'react-dom';
 import Home from './components/Home';
@@ -511,7 +511,7 @@ render(
 
 Let's add more events to `app/events/index.js`
 
-```
+```javascript
 export const CLOSE_WINDOW = 'CLOSE_WINDOW';
 export const OPEN_LIST = 'OPEN_LIST';
 export const CLOSE_LIST = 'CLOSE_LIST';
@@ -543,7 +543,7 @@ Let's create a couple of more actions that will control the list and future even
 
 Let's create `app/actions/list.js`
 
-```
+```javascript
 import Dispatcher from '../dispatcher';
 import { CLOSE_LIST, REORDER_LIST, REMOVE_FROM_LIST } from '../events';
 
@@ -574,7 +574,7 @@ export default {
 
 Let's create another file `app/actions/music.js`
 
-```
+```javascript
 import Dispatcher from '../dispatcher';
 import {
   PLAY_SONG,
@@ -656,7 +656,7 @@ Now that we have our actions, let's start with creating a `SortableList` compone
 
 let's create it `app/components/SortableList.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import styles from './SortableList.css';
@@ -763,7 +763,7 @@ Take a minute to look at the code, we're missing a component called `SortableLis
 
 Let's add it `app/components/SortableListItem.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import styles from './SortableListItem.css';
 import { Sortable } from 'react-sortable';
@@ -848,7 +848,7 @@ Let's add them now
 
 `app/components/SortableListItem.css`
 
-```
+```css
 .item {
   counter-increment: item-counter;
   position: relative;
@@ -937,7 +937,7 @@ Let's add them now
 
 And another one for `app/components/SortableList.css`
 
-```
+```css
 .container {
   position: absolute;
   top: 105px;
@@ -965,7 +965,7 @@ The `SortableList` and `SortableListItem` are now done, but we're still missing 
 
 Let's open `app/store/index.js`
 
-```
+```javascript
 // Replace the events that we had before with
 import {
     CLOSE_WINDOW,
@@ -1005,7 +1005,7 @@ One example of this is the `SortableList` Component.
 
 Create a file `app/components/List.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import ListActions from '../actions/list';
@@ -1176,7 +1176,7 @@ export default class List extends Component {
 
 and style it with `app/components/List.css`
 
-```
+```css
 .backButton {
   position: absolute;
   left: 10px;
@@ -1220,7 +1220,7 @@ If we change the store and add a `getList()` method the app will run
 
 `app/store/index.js`
 
-```
+```javascript
 ...
 class Store extends EventEmitter {
   constructor() {
@@ -1257,7 +1257,7 @@ We'll add all the events this time and all the needed methods to finish the play
 
 `app/store/index.js`
 
-```
+```javascript
 // Events needed
 import {
   CLOSE_WINDOW,
@@ -1542,7 +1542,7 @@ Let's start with the actions
 
 `app/actions/dropArea.js`
 
-```
+```javascript
 import Dispatcher from '../dispatcher';
 import { DRAGGING_FILES, NOT_DRAGGING_FILES, DROP_FILES } from '../events';
 
@@ -1576,7 +1576,7 @@ There seems to be a problem with the `dragenter`, `dragleave` events, this util 
 
 Create a file called `app/utils/BetterDrag.js`
 
-```
+```javascript
 import EventEmitter from 'events';
 
 class BetterDrag extends EventEmitter {
@@ -1653,7 +1653,7 @@ Self explanatory, it will help us getting files info.
 
 `app/utils/readFiles.js`
 
-```
+```javascript
 import fs from 'fs';
 import File from './File';
 import WaterFallOver from './WaterFallOver';
@@ -1757,7 +1757,7 @@ Let's install them executing command `npm i mime jsmediatags album-art -S`
 
 Here's the file `app/utils/File.js`
 
-```
+```javascript
 import p from 'path';
 import mime from 'mime';
 import jsmediatags from 'jsmediatags';
@@ -1878,7 +1878,7 @@ This class will helps us to iterate sequentially through the file list.
 
 Please refer to [Mostafa Samir blog post](http://mostafa-samir.github.io/async-iterative-patterns-pt1/) for a more comprehensive explanation.
 
-```
+```javascript
 import EventEmitter from 'events';
 
 class WaterFallOver extends EventEmitter {
@@ -1911,7 +1911,7 @@ export default WaterFallOver;
 
 Create the file `app/components/DropArea.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import BetterDrag from '../utils/BetterDrag';
 import DropAreaActions from '../actions/dropArea';
@@ -1998,7 +1998,7 @@ export default class Home extends Component {
 
 And the component styles at `app/component/DropArea.css`
 
-```
+```css
 .dashedContainer {
   position: absolute;
   left: 20px;
@@ -2022,7 +2022,7 @@ As you can see from the app everything seems messed up, let's fix it by adding m
 
 Let's add the following styles to `app/app.global.css`
 
-```
+```css
 .messageArea {
   position: fixed;
   top: 0;
@@ -2080,7 +2080,7 @@ Let's open the store
 
 `app/store/index.js`
 
-```
+```javascript
 ...
 // Import the WaterFallOver as we'll need it
 import WaterFallOver from '../utils/WaterFallOver';
@@ -2118,7 +2118,7 @@ We won't use any library for this one, we'll trust the web audio api.
 
 Let's create `app/utils/AudioController.js`
 
-```
+```javascript
 import EventEmitter from 'events';
 import fs from 'fs';
 
@@ -2313,7 +2313,7 @@ Let's open the store file and play that clicked song
 
 `app/store/index.js`
 
-```
+```javascript
 import AudioController from '../utils/AudioController';
 ...
 
@@ -2369,7 +2369,7 @@ We'll need an extra npm module called [react-input-range](https://www.npmjs.com/
 
 `app/components/MusicControls.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import VolumeControl from './VolumeControl';
@@ -2462,7 +2462,7 @@ export default MusicControls;
 
 And the styles `app/components/MusicControls.css`
 
-```
+```css
 .container {
   position: absolute;
   bottom: 10px;
@@ -2533,7 +2533,7 @@ And the styles `app/components/MusicControls.css`
 
 `app/components/Seeker.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import InputRange from 'react-input-range';
@@ -2663,7 +2663,7 @@ export default Seeker;
 
 and the styles `app/component/Seeker.css`
 
-```
+```css
 .container {
   position: absolute;
   top: 0;
@@ -2696,7 +2696,7 @@ and the styles `app/component/Seeker.css`
 
 `app/components/VolumeControl.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import styles from './VolumeControl.css';
@@ -2781,7 +2781,7 @@ export default VolumeControl;
 
 and the styles `app/components/VolumeControl.css`
 
-```
+```css
 .volumeIcon {
   width: 30px;
   height: 30px;
@@ -2801,7 +2801,7 @@ This component will just be an svg that will change the icon depending on the vo
 
 `app/components/VolumeIconSvg.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 
 class VolumeIconSvg extends Component {
@@ -2867,7 +2867,7 @@ What this will do is to trigger an event every single frame, so we can update th
 
 Open `app/store/index.js`
 
-```
+```javascript
 ...
   constructor() {
     super();
@@ -2893,7 +2893,7 @@ Open `app/store/index.js`
 
 Let's now add the controllers to our `app/components/Home.js`
 
-```
+```javascript
 ...
 import MusicControls from './MusicControls';
 ...
@@ -2916,7 +2916,7 @@ import MusicControls from './MusicControls';
 
 We need to add more stylings to `app/components/Home.css`
 
-```
+```css
 ...
 
 .musicControls {
@@ -2947,7 +2947,7 @@ Let's finish the store now so we focus ourselves in the styling of the app
 
 Open `app/store/index.js`
 
-```
+```javascript
 ...
 import {
   CLOSE_WINDOW,
@@ -3045,7 +3045,7 @@ There we go, we should now be all done with the store
 
 Open the `app/app.html` file and add the input range css
 
-```
+```html
 ...
     <link rel="stylesheet" href="../node_modules/font-awesome/css/font-awesome.min.css" />
     <link rel="stylesheet" href="../node_modules/react-input-range/dist/react-input-range.min.css" />
@@ -3054,7 +3054,7 @@ Open the `app/app.html` file and add the input range css
 
 Add it as an external component to `webpack.config.electron.js`
 
-```
+```javascript
 ...
   externals: [
     'font-awesome',
@@ -3066,7 +3066,7 @@ Add it as an external component to `webpack.config.electron.js`
 
 Open `app/app.global.css` and add the following
 
-```
+```css
 ...
 .volumeRange {
   position: absolute;
@@ -3125,7 +3125,7 @@ Looking good
 
 Create a new component `app/components/SongCover.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import configureStore from '../store/configureStore';
 import styles from './SongCover.css';
@@ -3183,7 +3183,7 @@ export default SongCover;
 
 And the styles `app/components/SongCover.css`
 
-```
+```css
 .container {
   position: relative;
   width: 200px;
@@ -3197,7 +3197,7 @@ And the styles `app/components/SongCover.css`
 
 Now let's add the component to `app/components/Home.js`
 
-```
+```javascript
 ...
 import SongCover from './SongCover';
 ...
@@ -3225,7 +3225,7 @@ import SongCover from './SongCover';
 
 Let's create a new file `app/components/PlayerSpectrum.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import styles from './PlayerSpectrum.css';
@@ -3274,7 +3274,7 @@ export default PlayerSpectrum;
 
 With the styles `app/components/PlayerSpectrum.css`
 
-```
+```css
 .container {
   position: absolute;
   width: 100%;
@@ -3296,7 +3296,7 @@ With the styles `app/components/PlayerSpectrum.css`
 
 And again let's add it to `app/components/Home.js`
 
-```
+```javascript
 ...
 import PlayerSpectrum from './PlayerSpectrum';
 ...
@@ -3327,7 +3327,7 @@ For better understanding of the effect please refer to the [codrops article](htt
 
 Open `app/app.html` and add the following to the top of the body
 
-```
+```html
 ...
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="800" style="display: none; position: absolute; top: 0; left: 0;">
   <defs>
@@ -3349,7 +3349,7 @@ And we're done
 
 Open `app/components/Home.js`
 
-```
+```javascript
 import React, { Component } from 'react';
 import store from '../store';
 import styles from './Home.css';
